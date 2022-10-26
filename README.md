@@ -9,5 +9,5 @@
 ![alt text](https://github.com/AjayYadavAi/laravel-9-graphql-vue-3-crud/blob/setup/image.png?raw=true)
 
 
-![alt text](https://github.com/AjayYadavAi/laravel-9-graphql-vue-3-crud/blob/setup/crud.png?raw=true)
+![alt text](https://github.com/AjayYadavAi/laravel-9-graphql-vue-3-crud/blob/master/crud.png)
 
