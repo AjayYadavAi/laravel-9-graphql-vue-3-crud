@@ -18,7 +18,7 @@
                         <div class="col-sm-3">
                             <input type="text" class="form-control" placeholder="Name .." v-model="form.name">
                         </div>
-                        <div class="col-sm-4">
+                        <div class="col-sm-4" v-if="!user_id">
                             <input type="email" class="form-control" placeholder="Email .." v-model="form.email">
                         </div>
                         <div class="col-sm-3">
@@ -32,6 +32,7 @@
 
                     </div>
                 </form>
+                <div class="text-center" v-if="createLoading">loading.....</div>
             </div>
         </div>
 
@@ -78,6 +79,7 @@
     export default{
         setup(){
             const user_id = ref(null)
+            const delete_user_id = ref(null)
             const form = reactive({
                 name: '',
                 email: '',
@@ -85,9 +87,50 @@
             });
 
             const { result,loading,refetch  } = useQuery(USERS_QUERY)
-            const { mutate: createUser,error } = useMutation(CREATE_USER)
-            const { mutate: updateUser } = useMutation(UPDATE_USER)
-            const { mutate: removeUser } = useMutation(REMOVE_USER)
+
+            const { mutate: createUser,error,loading:createLoading } = useMutation(CREATE_USER, () => ({
+                update: (cache, { data: { createUser } }) => {
+                    let data = cache.readQuery({ query: USERS_QUERY })
+                    data = {
+                      ...data,
+                      userlist: { data:[
+                            ...data.userlist.data,
+                            createUser,
+                            ],
+                            __typename:data.userlist.__typename
+                        }
+                    }
+                    cache.writeQuery({ query: USERS_QUERY, data })
+                },
+            }))
+
+            const { mutate: updateUser } = useMutation(UPDATE_USER, () => ({
+                update: (cache, { data: { updateUser } }) => {
+                    let data = cache.readQuery({ query: USERS_QUERY })
+                    let updated_data = data.userlist.data.map(user =>{
+                        if(user.id == updateUser.id){
+                            return updateUser
+                        }
+                        return user;
+                    })
+                    data = {
+                        userlist: { data:updated_data,__typename:data.userlist.__typename}
+                    }
+
+                    cache.writeQuery({ query: USERS_QUERY, data })
+                },
+            }))
+
+            const { mutate: removeUser } = useMutation(REMOVE_USER, () => ({
+                update: (cache, { data: { removeUser } }) => {
+                    let data = cache.readQuery({ query: USERS_QUERY })
+
+                    const delete_user = data.userlist.data.find(user=> user.id == delete_user_id.value)
+
+                    cache.evict({ id: cache.identify(delete_user)})
+                },
+            }))
+
 
             const saveForm = () =>{
                 let data = {
@@ -101,7 +144,7 @@
                 }else{
                     createUser(data)
                 }
-                refetch()
+
                 resetForm()
             }
             const editUser = (id)=>{
@@ -113,8 +156,8 @@
             }
 
             const deleteUser = (id)=>{
+                delete_user_id.value = id
                 removeUser({id: id})
-                refetch()
             }
 
             const resetForm = () =>{
@@ -132,7 +175,8 @@
                 editUser,
                 user_id,
                 deleteUser,
-                error
+                error,
+                createLoading
             }
         }
     }
